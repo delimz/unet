@@ -198,7 +198,7 @@ for test_img in test_imgs:
             bounds=box.bounds
             print(bounds)
             offx=bounds[0]
-            offy=bounds[1]-((((bounds[3]-bounds[1])//512)+(crop_size/512)*512)+(bounds[3]-bounds[1])
+            offy=bounds[1]-((((bounds[3]-bounds[1])//512)+(crop_size//512))*512)+(bounds[3]-bounds[1])
             print('off=(',offx,',',offy,')')
 
             predshape=[]
