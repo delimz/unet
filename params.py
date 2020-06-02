@@ -90,7 +90,7 @@ def lay_parameters_defaults():
 
     for param,nargs,typef,default,helps in params:
         print("--{}".format(param),end=' ')
-        if nargs is '*':
+        if nargs == '*':
             for i in default:
                 print(str(i),end=' ')
         else:
@@ -106,7 +106,7 @@ def types(n,x):
             return 'String'
         if x is parsebool:
             return 'Boolean'
-    if n is '*' or n is '+':
+    if n == '*' or n == '+':
         return 'String'
 
 def make_descriptor():
@@ -162,5 +162,5 @@ def make_descriptor():
     return json.dumps(descriptor)
 
 if __name__ == '__main__':
-    print(lay_parameters_defaults())
+    print(make_descriptor())
 

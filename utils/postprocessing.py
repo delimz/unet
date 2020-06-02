@@ -215,7 +215,10 @@ for test_img in test_imgs:
             '''
             tmpres=[]
             for i in range(len(terms)):
-                tmpres.append(predshape[i].intersection(trueshape[i]).area/predshape[i].union(trueshape[i]).area)
+                if trueshape[i].area>0:
+                    tmpres.append(predshape[i].intersection(trueshape[i]).area/predshape[i].union(trueshape[i]).area)
+                else:
+                    tmpres.append(0.0)
             if np.mean(tmpres) > np.mean(maxres):
                 maxres=tmpres
                 maxshape=predshape

@@ -91,7 +91,7 @@ y_test_filenames=[]
 for i in range(len(terms)):
     y_test_filenames.append([os.path.join(datadir, str(terms[i]),x+'.png') for x in test_filenames])
 
-#format data into numpy arrays
+# convert list of filenames into numpy arrays
 x_train_filenames=np.array(x_train_filenames)
 y_train_filenames=np.array(y_train_filenames).transpose()
 x_val_filenames=np.array(x_val_filenames)
