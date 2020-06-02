@@ -38,6 +38,7 @@ parser.add_argument('--imgs-val',type=int,nargs='+',default=[2319547,2319553,231
 parser.add_argument('--imgs-test',type=int,nargs='+',default=[2319587])#[2319573,2319579,2319587,2319595])
 
 parser.add_argument('--terms',type=int,nargs='+',default=[1012286,1012259,1012265,1012280]) #gm l b d #1012294 = gc
+
 parser.add_argument('--threshold',type=float,default=0.5)
 parser.add_argument('--no',type=int,default=4,help="number of errosion and dilation passes for openning and closing")
 
@@ -60,6 +61,7 @@ slice_term=params.slice_term
 terms=params.terms
 no=params.no
 threshold=params.threshold
+crop_size=parmas.crop_size
 
 def getpolygon(img,offset=(0,0)):
     res=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
@@ -196,7 +198,7 @@ for test_img in test_imgs:
             bounds=box.bounds
             print(bounds)
             offx=bounds[0]
-            offy=bounds[1]-((((bounds[3]-bounds[1])//512)+2)*512)+(bounds[3]-bounds[1])
+            offy=bounds[1]-((((bounds[3]-bounds[1])//512)+(crop_size/512)*512)+(bounds[3]-bounds[1])
             print('off=(',offx,',',offy,')')
 
             predshape=[]
