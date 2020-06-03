@@ -20,11 +20,11 @@ parser = ArgumentParser(prog="ratseg_postproc")
 parser.add_argument('--cytomine_host', dest='host',
                     default='http://localhost-core', help="The Cytomine host")
 parser.add_argument('--cytomine_public_key', dest='public_key',
-                    default='39d81d3f-fcfc-494c-914e-8f0a8814de4e',
+                    default='26d85ab7-b0b4-40ce-ac03-8c40d43fc940',
                     help="The Cytomine public key")
 parser.add_argument('--cytomine_private_key', dest='private_key',
                     help="The Cytomine private key",
-                    default='132cb1d0-ae3c-4d03-8271-c87dcfc612cd')
+                    default='62c292b3-32a9-456c-afe5-e00234f55df3')
 parser.add_argument('--cytomine_id_project', dest='id_project',
                     help="The project from which we want the images",
                     default=155)
@@ -43,6 +43,7 @@ parser.add_argument('--threshold',type=float,default=0.5)
 parser.add_argument('--no',type=int,default=4,help="number of errosion and dilation passes for openning and closing")
 
 parser.add_argument('--upload',type=bool,default=False,help='upload the resulting annotations to cytomine')
+parser.add_argument('--crop_size',type=int,default=2048,help='size of the cropped tiles to compute lost border')
 
 params=parser.parse_args(sys.argv[1:])
 
@@ -61,7 +62,7 @@ slice_term=params.slice_term
 terms=params.terms
 no=params.no
 threshold=params.threshold
-crop_size=parmas.crop_size
+crop_size=params.crop_size
 
 def getpolygon(img,offset=(0,0)):
     res=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
@@ -187,6 +188,7 @@ for test_img in test_imgs:
         maxshape=None
         maxtrue=None
         for box in res[slice_term,test_img]:
+            print('one box')
             trueshape=[]
             for term in terms:
                 tgm=res[term,test_img][0]
@@ -196,9 +198,11 @@ for test_img in test_imgs:
                 trueshape.append(tgm)
 
             bounds=box.bounds
+            boxside=bounds[3]-bounds[1]
+            resside=np.ceil(boxside/512)*512
             print(bounds)
-            offx=bounds[0]
-            offy=bounds[1]-((((bounds[3]-bounds[1])//512)+(crop_size//512))*512)+(bounds[3]-bounds[1])
+            offx=bounds[0]+(crop_size-512)//2
+            offy=bounds[1]-(crop_size-512)//2  - resside + boxside
             print('off=(',offx,',',offy,')')
 
             predshape=[]
