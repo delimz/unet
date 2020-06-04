@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from sys import argv
 import json
+from tf.data.experimental import AUTOTUNE
 
 
 def parsebool(x):
@@ -23,7 +24,7 @@ crop_params=[
         ("datadir",None,str,'/mnt/SSD_128/tmp','where the crops are stored'),
         ("terms",'*',int,[],'id of the terms to learn or predict'),
         ("slice_term",None,int,-1,'id of the annotation delimiting the zone to segment'),
-        ("crop_size",None,int,2048,'size of the square tiles to crop'),
+        ("crop_size",None,int,1024,'size of the square tiles to crop'),
     ]
 
 augmentations_params=[
@@ -48,7 +49,7 @@ model_params=[
         ("back_leg",None,parsebool,False,'deep supervision decoder side'),
         ("checkpoint",None,str,None,'checkpoint path to use'),
         ("min_output_size",None,int,512,'minimum size of output of the neural network'),
-        ("n_jobs",None,int,16,'number of cpu jobs for image preprocessing'),
+        ("n_jobs",None,int,AUTOTUNE,'number of cpu jobs for image preprocessing'),
         ("batch_size",None,int,5,'number of tiles per batch of training step'),
         ("epochs",None,int,5,'number of epochs to train for'),
     ]
