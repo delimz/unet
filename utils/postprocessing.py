@@ -108,7 +108,7 @@ print(fm)
 for f in fm:
     img=cv2.imread("./%s" % f,cv2.IMREAD_GRAYSCALE)
     imshape=img.shape
-    ks=12
+    ks=7
     start=time()
     kernel1=np.array(cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ks,ks))/255.0,dtype=np.float16)
     kernel1=kernel1.reshape((ks,ks,1))
@@ -134,7 +134,24 @@ for f in fm:
         
 
 ploys={}
+from shapely.validation import make_valid
+from shapely.geometry.collection import GeometryCollection
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely.geometry.polygon import Polygon
+
 for f in shapes.keys():
+    print("doing",f)
+    ploys[f]=make_valid(shapes[f])
+    if ploys[f] is not MultiPolygon:
+        print(ploys[f].__repr__(),"is not multipolygon")
+        if isinstance(ploys[f],GeometryCollection):
+            print("is GeometryCollection")
+            tmp=MultiPolygon()
+            for shape in ploys[f]:
+                if isinstance(shape,MultiPolygon) or isinstance(shape,Polygon):
+                    tmp=tmp.union(shape)
+            ploys[f]=tmp
+    '''
     if shapes[f].is_valid:
         print(0)
         ploys[f]=shapes[f]
@@ -147,6 +164,7 @@ for f in shapes.keys():
             i=i+1
         print(i)
         ploys[f]=shapes[f].simplify(i)
+    '''
 
 #populate res with the annotations
 with Cytomine(host=host, public_key=public_key, private_key=private_key) as cytomine:
