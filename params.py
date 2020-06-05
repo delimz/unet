@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from sys import argv
 import json
+import tensorflow as tf
 from tf.data.experimental import AUTOTUNE
 
 
