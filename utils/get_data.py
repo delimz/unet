@@ -21,18 +21,17 @@ parser = ArgumentParser(prog="ratseg_get_data")
 parser.add_argument('--cytomine_host', dest='host',
                     default='http://localhost-core', help="The Cytomine host")
 parser.add_argument('--cytomine_public_key', dest='public_key',
-                    default='39d81d3f-fcfc-494c-914e-8f0a8814de4e',
+                    default='d5ebfff1-2517-47f9-9a71-a6073ef3250f',
                     help="The Cytomine public key")
 parser.add_argument('--cytomine_private_key', dest='private_key',
                     help="The Cytomine private key",
-                    default='132cb1d0-ae3c-4d03-8271-c87dcfc612cd')
+                    default='0337a7a5-7a00-410d-9c62-d9080ea0de52')
 parser.add_argument('--cytomine_id_project', dest='id_project',
                     help="The project from which we want the images",
-                    default=155)
+                    default=198)
 parser.add_argument('--slice_term',type=int,
                     help="id of the ROI delimiting annotation",
-                    default=30289)
-parser.add_argument('--datadir',default='tmp/')
+                    default=8760)
 
 parser.add_argument('--download_path',
                     help="Where to store images",
@@ -55,10 +54,10 @@ slice_term_id=params.slice_term
 imgs=get_image_map(params)
 print(imgs)
 overlap=params.overlap
-datadir=params.datadir
+datadir=params.download_path
 
 imgs_l=[]
-dest_base=params.datadir
+dest_base=params.download_path
 
 with Cytomine(host=host, public_key=public_key, private_key=private_key) as cytomine:
     res={}

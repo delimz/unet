@@ -11,7 +11,7 @@ def get_image_map(params):
         image_instances = ImageInstanceCollection().fetch_with_filter("project", params.id_project)
         res=dict()
         for image in image_instances:
-            filename=image.filename.split("/")[2]
+            filename=image.filename
             res[image.id]=filename
             if params.download_path:
                 # To download the original files that have been uploaded to Cytomine
