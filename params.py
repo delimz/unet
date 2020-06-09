@@ -120,7 +120,7 @@ def types(n,x):
 
 def make_descriptor():
     descriptor = {
-            'name' : 'ratseg2',
+            'name' : 'unet',
             'container-image' : {
                 'image' : 'delimz/s_unet',
                 'type' : 'singularity'
@@ -164,7 +164,7 @@ def make_descriptor():
                                         'set-by-server' : False,
                                         'optional' : True,
                                         'type' : types(nargs,typef),
-                                        'default' : default,
+                                        'default-value' : default,
                                         }
                                     )
     
