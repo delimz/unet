@@ -12,6 +12,8 @@ def get_image_map(params):
         res=dict()
         for image in image_instances:
             filename=image.filename
+            if filename.find("/")!=-1:
+                filename=filename.split('/')[-1]
             res[image.id]=filename
             if params.download_path:
                 # To download the original files that have been uploaded to Cytomine
@@ -70,11 +72,11 @@ if __name__ == "__main__":
     parser.add_argument('--cytomine_host', dest='host',
                         default='http://localhost-core', help="The Cytomine host")
     parser.add_argument('--cytomine_public_key', dest='public_key',
-                        default='39d81d3f-fcfc-494c-914e-8f0a8814de4e',
+                    default='d5ebfff1-2517-47f9-9a71-a6073ef3250f',
                         help="The Cytomine public key")
     parser.add_argument('--cytomine_private_key', dest='private_key',
                         help="The Cytomine private key",
-                        default='132cb1d0-ae3c-4d03-8271-c87dcfc612cd')
+                    default='0337a7a5-7a00-410d-9c62-d9080ea0de52')
     parser.add_argument('--cytomine_id_project', dest='id_project',
                         help="The project from which we want the images",
                         default=155)
@@ -84,7 +86,7 @@ if __name__ == "__main__":
 
     params=parser.parse_args(sys.argv[1:])
 
-    for k in get_image_map(params).keys():
-        print(k,end=" ")
+    for k,v in get_image_map(params).items():
+        print(k,v)
     print("")
 

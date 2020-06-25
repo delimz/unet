@@ -21,21 +21,21 @@ parser = ArgumentParser(prog="ratseg_get_data")
 parser.add_argument('--cytomine_host', dest='host',
                     default='http://localhost-core', help="The Cytomine host")
 parser.add_argument('--cytomine_public_key', dest='public_key',
-                    default='d5ebfff1-2517-47f9-9a71-a6073ef3250f',
+                    default='b484fa9c-026e-4176-b22e-4b83ebbf2968',
                     help="The Cytomine public key")
 parser.add_argument('--cytomine_private_key', dest='private_key',
                     help="The Cytomine private key",
-                    default='0337a7a5-7a00-410d-9c62-d9080ea0de52')
+                    default='cd538017-1e5c-433f-b9f0-517ae5d301ef')
 parser.add_argument('--cytomine_id_project', dest='id_project',
                     help="The project from which we want the images",
-                    default=198)
+                    default=837)
 parser.add_argument('--slice_term',type=int,
                     help="id of the ROI delimiting annotation",
-                    default=8760)
+                    default=2602)
 
 parser.add_argument('--download_path',
                     help="Where to store images",
-                    default='/home/donovan/Downloads/')
+                    default='/home/donovan/data/')
 
 parser.add_argument('--patch-size',type=int,default=1024)
 parser.add_argument('--overlap',type=int,default=2)
