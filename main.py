@@ -31,7 +31,7 @@ import numpy as np
 from data.preprocessing import get_dataset,augment
 from unet.model import unet
 from unet.loss import superloss
-from unet.metrics import Dice
+from unet.metrics import Dice,DiceX,DiceG
 from unet.utils import crop_size
 
 from unet.preconf import conf
@@ -190,7 +190,8 @@ val_ds = get_dataset(x_val_filenames,
 checkpoint_path = params.checkpoint
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
-model.compile('adam',superloss,metrics=[Dice()])
+num_mask=len(params.terms)
+model.compile('adam',superloss,metrics=[Dice(),*[DiceX(i) for i in range(num_mask)],DiceG(num_mask)])
 
 try:
     model.load_weights(checkpoint_path)
@@ -198,7 +199,7 @@ except:
     print('checkpoint not loaded')
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                  save_weights_only=True,
-                                                 monitor='val_dice',
+                                                 monitor='val_geo_dice',
                                                   mode='max',
                                                     save_best_only=True,
                                                  verbose=1)
@@ -271,7 +272,6 @@ def make_images(res,img_id,img_index,min_output_size,output_shape,line,col,model
     return 1
 
 #now make the output masks for each testing images
-num_mask=len(params.terms)
 num_mask_t=tf.constant(num_mask)
 output_shape_1=tf.constant(output_shape[1])
 min_output_size=tf.constant(min_output_size)
