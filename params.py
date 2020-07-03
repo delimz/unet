@@ -171,6 +171,19 @@ def make_descriptor():
     descriptor['command-line'] = ' '.join(commandLine)
     return json.dumps(descriptor)
 
+def print_description_paragraphs():
+    params=[]
+    params.extend(cytomine_params)
+    params.extend(crop_params)
+    params.extend(augmentations_params)
+    params.extend(model_params)
+    params.extend(postproc_params)
+
+    for param,nargs,typef,default,helps in params:
+        print('\\paragraph{',param.capitalize().replace('_',' '),'}',helps)
+     
 if __name__ == '__main__':
     print(make_descriptor())
+    #print_description_paragraphs()
+
 
