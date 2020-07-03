@@ -6,26 +6,29 @@ from cytomine.models.annotation import AnnotationCollection
 from shapely.wkt import loads
 import numpy as np
 
+
 def get_image_map(params):
     with Cytomine(host=params.host, public_key=params.public_key, private_key=params.private_key) as cytomine:
-        image_instances = ImageInstanceCollection().fetch_with_filter("project", params.id_project)
-        res=dict()
+        image_instances = ImageInstanceCollection(
+        ).fetch_with_filter("project", params.id_project)
+        res = dict()
         for image in image_instances:
-            filename=image.filename
-            if filename.find("/")!=-1:
-                filename=filename.split('/')[-1]
-            res[image.id]=filename
+            filename = image.filename
+            if filename.find("/") != -1:
+                filename = filename.split('/')[-1]
+            res[image.id] = filename
             if params.download_path:
                 # To download the original files that have been uploaded to Cytomine
-                path=os.path.join(params.download_path, filename)
+                path = os.path.join(params.download_path, filename)
                 print(path)
                 if not os.path.exists(path):
                     image.download(path)
         return res
 
+
 def get_terms_list(params):
     with Cytomine(host=params.cytomine_host, public_key=params.cytomine_public_key, private_key=params.cytomine_private_key) as cytomine:
-        res={}
+        res = {}
         annotations = AnnotationCollection()
         annotations.project = params.cytomine_id_project
         annotations.showWKT = True
@@ -42,29 +45,29 @@ def get_terms_list(params):
                 annotation.project,
                 annotation.term
             ))
-            if len(annotation.term)==1:
-                if (annotation.term[0],annotation.image) not in res.keys():
-                    res[(annotation.term[0],annotation.image)]=[]
-                res[(annotation.term[0],annotation.image)].append(loads(annotation.location))
-                last=res[(annotation.term[0],annotation.image)][-1]
-                print(last.bounds,last.to_wkt().count(","))
+            if len(annotation.term) == 1:
+                if (annotation.term[0], annotation.image) not in res.keys():
+                    res[(annotation.term[0], annotation.image)] = []
+                res[(annotation.term[0], annotation.image)].append(
+                    loads(annotation.location))
+                last = res[(annotation.term[0], annotation.image)][-1]
+                print(last.bounds, last.to_wkt().count(","))
 
-    ks=res.keys()
+    ks = res.keys()
     print(ks)
-    kl=[x for x in ks]
-    stuff=np.array(kl)[:,0]
-    stuff=stuff.tolist()
-    stuff=set(stuff)
+    kl = [x for x in ks]
+    stuff = np.array(kl)[:, 0]
+    stuff = stuff.tolist()
+    stuff = set(stuff)
     print(stuff)
-    terms=[x for x in stuff]
+    terms = [x for x in stuff]
     terms.remove(params.slice_term)
     print(terms)
     return terms
 
 
-
 if __name__ == "__main__":
-    
+
     from argparse import ArgumentParser
     import sys
 
@@ -72,11 +75,11 @@ if __name__ == "__main__":
     parser.add_argument('--cytomine_host', dest='host',
                         default='http://localhost-core', help="The Cytomine host")
     parser.add_argument('--cytomine_public_key', dest='public_key',
-                    default='d5ebfff1-2517-47f9-9a71-a6073ef3250f',
+                        default='d5ebfff1-2517-47f9-9a71-a6073ef3250f',
                         help="The Cytomine public key")
     parser.add_argument('--cytomine_private_key', dest='private_key',
                         help="The Cytomine private key",
-                    default='0337a7a5-7a00-410d-9c62-d9080ea0de52')
+                        default='0337a7a5-7a00-410d-9c62-d9080ea0de52')
     parser.add_argument('--cytomine_id_project', dest='id_project',
                         help="The project from which we want the images",
                         default=155)
@@ -84,9 +87,8 @@ if __name__ == "__main__":
                         help="Where to store images",
                         default='/home/donovan/Downloads/')
 
-    params=parser.parse_args(sys.argv[1:])
+    params = parser.parse_args(sys.argv[1:])
 
-    for k,v in get_image_map(params).items():
-        print(k,v)
+    for k, v in get_image_map(params).items():
+        print(k, v)
     print("")
-

@@ -1,3 +1,7 @@
+from shapely.geometry.polygon import Polygon
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely.geometry.collection import GeometryCollection
+from shapely.validation import make_valid
 import os
 import cv2
 import matplotlib.pyplot as plt
@@ -10,7 +14,7 @@ from shapely.affinity import translate
 import tensorflow.compat.v1 as tf
 
 from cytomine import Cytomine
-from cytomine.models import AnnotationCollection,Annotation
+from cytomine.models import AnnotationCollection, Annotation
 from cytomine.models.image import ImageInstanceCollection
 
 from argparse import ArgumentParser
@@ -28,129 +32,137 @@ parser.add_argument('--cytomine_private_key', dest='private_key',
 parser.add_argument('--cytomine_id_project', dest='id_project',
                     help="The project from which we want the images",
                     default=837)
-parser.add_argument('--slice_term',type=int,
+parser.add_argument('--slice_term', type=int,
                     help="id of the ROI delimiting annotation",
                     default=2602)
 
-parser.add_argument('--model','-m',help="name of the model to evaluate")
+parser.add_argument('--model', '-m', help="name of the model to evaluate")
 
-parser.add_argument('--imgs-val',type=int,nargs='+',default=[])
-parser.add_argument('--imgs-test',type=int,nargs='+',default=[])#[2319573,2319579,2319587,2319595])
+parser.add_argument('--imgs-val', type=int, nargs='+', default=[])
+# [2319573,2319579,2319587,2319595])
+parser.add_argument('--imgs-test', type=int, nargs='+', default=[])
 
-parser.add_argument('--terms',type=int,nargs='+',default=[2591,2569,2575,2583,2561]) #gm l b d #1012294 = gc
+parser.add_argument('--terms', type=int, nargs='+',
+                    default=[2591, 2569, 2575, 2583, 2561])  # gm l b d #1012294 = gc
 
-parser.add_argument('--threshold',type=float,default=0.5)
-parser.add_argument('--no',type=int,default=4,help="number of errosion and dilation passes for openning and closing")
+parser.add_argument('--threshold', type=float, default=0.5)
+parser.add_argument('--no', type=int, default=4,
+                    help="number of errosion and dilation passes for openning and closing")
 
-parser.add_argument('--upload',type=bool,default=False,help='upload the resulting annotations to cytomine')
-parser.add_argument('--crop_size',type=int,default=1024,help='size of the cropped tiles to compute lost border')
+parser.add_argument('--upload', type=bool, default=False,
+                    help='upload the resulting annotations to cytomine')
+parser.add_argument('--crop_size', type=int, default=1024,
+                    help='size of the cropped tiles to compute lost border')
 
-params=parser.parse_args(sys.argv[1:])
+params = parser.parse_args(sys.argv[1:])
 
-model=params.model
-threshold=params.threshold
-test_imgs=params.imgs_test
-upload=params.upload
+model = params.model
+threshold = params.threshold
+test_imgs = params.imgs_test
+upload = params.upload
 
-print("imgs",test_imgs)
+print("imgs", test_imgs)
 
-host=params.host
-public_key=params.public_key
-private_key=params.private_key
-id_project=params.id_project
-slice_term=params.slice_term
-terms=params.terms
-no=params.no
-threshold=params.threshold
-crop_size=params.crop_size
+host = params.host
+public_key = params.public_key
+private_key = params.private_key
+id_project = params.id_project
+slice_term = params.slice_term
+terms = params.terms
+no = params.no
+threshold = params.threshold
+crop_size = params.crop_size
 
-def getpolygon(img,offset=(0,0)):
-    res=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    poly="MULTIPOLYGON ({})"
-    polys=[]
-    if len(res[0])>0:
+
+def getpolygon(img, offset=(0, 0)):
+    res = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    poly = "MULTIPOLYGON ({})"
+    polys = []
+    if len(res[0]) > 0:
         for p in res[0]:
-            if len(p)>4:
-                subpoly="(({}))"
+            if len(p) > 4:
+                subpoly = "(({}))"
                 try:
-                    ps=["%d %d" % (x[0][0]+offset[0],x[0][1]+offset[1]) for x in p]
+                    ps = ["%d %d" %
+                          (x[0][0]+offset[0], x[0][1]+offset[1]) for x in p]
                 except Exception as e:
                     print(res)
                     print(p)
                     print(e)
                     exit(1)
                 ps.append(ps[0])
-                points=','.join(ps)
+                points = ','.join(ps)
                 polys.append(subpoly.format(points))
-    if len(polys)==0:
-        polys=["EMPTY"]
-    final=poly.format(",".join(polys))
+    if len(polys) == 0:
+        polys = ["EMPTY"]
+    final = poly.format(",".join(polys))
     try:
-        res=loads(final)
+        res = loads(final)
     except Exception as e:
         print(final)
-        print('ERROR : ',e)
+        print('ERROR : ', e)
         exit(0)
-        res=loads(poly.format("EMPTY"))
+        res = loads(poly.format("EMPTY"))
 
     return res
 
+
 def one_of_us(s):
     for img in test_imgs:
-        if s.startswith('fullmask_%s_%d' % (model,img)):
+        if s.startswith('fullmask_%s_%d' % (model, img)):
             return True
     return False
 
-shapes={}
-fm=sorted([f for f in filter(one_of_us ,os.listdir('.'))])
+
+shapes = {}
+fm = sorted([f for f in filter(one_of_us, os.listdir('.'))])
 print(fm)
 
 for f in fm:
-    img=cv2.imread("./%s" % f,cv2.IMREAD_GRAYSCALE)
-    imshape=img.shape
-    ks=7
-    start=time()
-    kernel1=np.array(cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ks,ks))/255.0,dtype=np.float16)
-    kernel1=kernel1.reshape((ks,ks,1))
-    kernel2=np.array(np.matmul(cv2.getGaussianKernel(ks,-1),cv2.getGaussianKernel(ks,-1).transpose()),dtype=np.float16).reshape((ks,ks,1))
+    img = cv2.imread("./%s" % f, cv2.IMREAD_GRAYSCALE)
+    imshape = img.shape
+    ks = 7
+    start = time()
+    kernel1 = np.array(cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (ks, ks))/255.0, dtype=np.float16)
+    kernel1 = kernel1.reshape((ks, ks, 1))
+    kernel2 = np.array(np.matmul(cv2.getGaussianKernel(
+        ks, -1), cv2.getGaussianKernel(ks, -1).transpose()), dtype=np.float16).reshape((ks, ks, 1))
 
-    img=tf.image.convert_image_dtype(img,dtype=tf.float16)
-    img=tf.reshape(img,(1,imshape[0],imshape[1],1))
+    img = tf.image.convert_image_dtype(img, dtype=tf.float16)
+    img = tf.reshape(img, (1, imshape[0], imshape[1], 1))
     for i in range(no):
-        img=tf.nn.erosion2d(img,kernel2,[1,1,1,1],[1,1,1,1],'SAME')
+        img = tf.nn.erosion2d(img, kernel2, [1, 1, 1, 1], [1, 1, 1, 1], 'SAME')
     for i in range(no*2):
-        img=tf.nn.dilation2d(img,kernel2,[1,1,1,1],[1,1,1,1],'SAME')
+        img = tf.nn.dilation2d(img, kernel2, [1, 1, 1, 1], [
+                               1, 1, 1, 1], 'SAME')
     for i in range(no):
-        img=tf.nn.erosion2d(img,kernel2,[1,1,1,1],[1,1,1,1],'SAME')
-    img=img[0,:,:,0]
-    t=threshold
-    cond=tf.less(img,tf.constant(t,shape=imshape,dtype=tf.float16))
-    imgt=tf.where(cond,tf.zeros(tf.shape(img),dtype=tf.float16),img)
-    imgt=tf.image.convert_image_dtype(imgt,dtype=tf.uint8)
-    imgt=cv2.flip(imgt.numpy(),0)
-    shapes[f]=getpolygon(imgt)
+        img = tf.nn.erosion2d(img, kernel2, [1, 1, 1, 1], [1, 1, 1, 1], 'SAME')
+    img = img[0, :, :, 0]
+    t = threshold
+    cond = tf.less(img, tf.constant(t, shape=imshape, dtype=tf.float16))
+    imgt = tf.where(cond, tf.zeros(tf.shape(img), dtype=tf.float16), img)
+    imgt = tf.image.convert_image_dtype(imgt, dtype=tf.uint8)
+    imgt = cv2.flip(imgt.numpy(), 0)
+    shapes[f] = getpolygon(imgt)
     print(time() - start)
-    print(f,t,"valid?",shapes[f].is_valid)
-        
+    print(f, t, "valid?", shapes[f].is_valid)
 
-ploys={}
-from shapely.validation import make_valid
-from shapely.geometry.collection import GeometryCollection
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.polygon import Polygon
+
+ploys = {}
 
 for f in shapes.keys():
-    print("doing",f)
-    ploys[f]=make_valid(shapes[f])
+    print("doing", f)
+    ploys[f] = make_valid(shapes[f])
     if ploys[f] is not MultiPolygon:
-        print(ploys[f].__repr__(),"is not multipolygon")
-        if isinstance(ploys[f],GeometryCollection):
+        print(ploys[f].__repr__(), "is not multipolygon")
+        if isinstance(ploys[f], GeometryCollection):
             print("is GeometryCollection")
-            tmp=MultiPolygon()
+            tmp = MultiPolygon()
             for shape in ploys[f]:
-                if isinstance(shape,MultiPolygon) or isinstance(shape,Polygon):
-                    tmp=tmp.union(shape)
-            ploys[f]=tmp
+                if isinstance(shape, MultiPolygon) or isinstance(shape, Polygon):
+                    tmp = tmp.union(shape)
+            ploys[f] = tmp
     '''
     if shapes[f].is_valid:
         print(0)
@@ -166,9 +178,9 @@ for f in shapes.keys():
         ploys[f]=shapes[f].simplify(i)
     '''
 
-#populate res with the annotations
+# populate res with the annotations
 with Cytomine(host=host, public_key=public_key, private_key=private_key) as cytomine:
-    res={}
+    res = {}
     annotations = AnnotationCollection()
     annotations.project = id_project
     annotations.showWKT = True
@@ -187,45 +199,47 @@ with Cytomine(host=host, public_key=public_key, private_key=private_key) as cyto
             annotation.term
         ))
         '''
-        if len(annotation.term)==1:
-            if (annotation.term[0],annotation.image) not in res.keys():
-                res[(annotation.term[0],annotation.image)]=[]
-            res[(annotation.term[0],annotation.image)].append(loads(annotation.location))
-            
-            if not res[(annotation.term[0],annotation.image)][-1].is_valid:
+        if len(annotation.term) == 1:
+            if (annotation.term[0], annotation.image) not in res.keys():
+                res[(annotation.term[0], annotation.image)] = []
+            res[(annotation.term[0], annotation.image)].append(
+                loads(annotation.location))
+
+            if not res[(annotation.term[0], annotation.image)][-1].is_valid:
                 raise 'fuck'
 
-results=[]
-trues=[]
-shapes=[]
+results = []
+trues = []
+shapes = []
 for test_img in test_imgs:
-    for index in range(len(res[slice_term,test_img])):
-        ploy=[ploys['fullmask_%s_%d_%d_%d.png' % (model,test_img,index,t)] for t in range(len(terms))]
+    for index in range(len(res[slice_term, test_img])):
+        ploy = [ploys['fullmask_%s_%d_%d_%d.png' %
+                      (model, test_img, index, t)] for t in range(len(terms))]
 
-        maxres=[0.0]*len(terms)
-        maxshape=None
-        maxtrue=None
-        for box in res[slice_term,test_img]:
+        maxres = [0.0]*len(terms)
+        maxshape = None
+        maxtrue = None
+        for box in res[slice_term, test_img]:
             print('one box')
-            trueshape=[]
+            trueshape = []
             for term in terms:
-                tgm=res[term,test_img][0]
-                for x in res[term,test_img]:
-                    tgm=tgm.union(x)
-                tgm=tgm.intersection(box)
+                tgm = res[term, test_img][0]
+                for x in res[term, test_img]:
+                    tgm = tgm.union(x)
+                tgm = tgm.intersection(box)
                 trueshape.append(tgm)
 
-            bounds=box.bounds
-            boxside=bounds[3]-bounds[1]
-            resside=np.ceil(boxside/512)*512
+            bounds = box.bounds
+            boxside = bounds[3]-bounds[1]
+            resside = np.ceil(boxside/512)*512
             print(bounds)
-            offx=bounds[0]+(crop_size-512)//2
-            offy=bounds[1]-(crop_size-512)//2  - resside + boxside
-            print('off=(',offx,',',offy,')')
+            offx = bounds[0]+(crop_size-512)//2
+            offy = bounds[1]-(crop_size-512)//2 - resside + boxside
+            print('off=(', offx, ',', offy, ')')
 
-            predshape=[]
+            predshape = []
             for i in range(len(terms)):
-                predshape.append(translate(ploy[i],yoff=offy,xoff=offx))
+                predshape.append(translate(ploy[i], yoff=offy, xoff=offx))
 
             '''
             try:
@@ -237,16 +251,17 @@ for test_img in test_imgs:
                 print('difference introduce error')
                 print(e)
             '''
-            tmpres=[]
+            tmpres = []
             for i in range(len(terms)):
-                if trueshape[i].area>0:
-                    tmpres.append(predshape[i].intersection(trueshape[i]).area/predshape[i].union(trueshape[i]).area)
+                if trueshape[i].area > 0:
+                    tmpres.append(predshape[i].intersection(
+                        trueshape[i]).area/predshape[i].union(trueshape[i]).area)
                 else:
                     tmpres.append(0.0)
             if np.mean(tmpres) > np.mean(maxres):
-                maxres=tmpres
-                maxshape=predshape
-                maxtrue=trueshape
+                maxres = tmpres
+                maxshape = predshape
+                maxtrue = trueshape
             else:
                 print('nope')
         results.append(maxres)
@@ -255,12 +270,13 @@ for test_img in test_imgs:
 
 if upload:
     with Cytomine(host=host, public_key=public_key, private_key=private_key) as cytomine:
-        num=0
+        num = 0
         for test_img in test_imgs:
-            for index in range(len(res[slice_term,test_img])):
+            for index in range(len(res[slice_term, test_img])):
                 for i in range(len(terms)):
-                    new_annotation=Annotation(location=shapes[num][i].wkt,id_image=test_img,id_terms=[terms[i]],id_project=id_project)
+                    new_annotation = Annotation(location=shapes[num][i].wkt, id_image=test_img, id_terms=[
+                                                terms[i]], id_project=id_project)
                     new_annotation.save()
-                num+=1
+                num += 1
 
 print(results)
