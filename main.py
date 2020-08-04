@@ -110,8 +110,9 @@ y_val_filenames = np.array(y_val_filenames).transpose()
 x_test_filenames = np.array(x_test_filenames)
 y_test_filenames = np.array(y_test_filenames).transpose()
 
-print((x_train_filenames.shape, y_train_filenames.shape), (x_val_filenames.shape,
-                                                           y_val_filenames.shape), (x_test_filenames.shape, y_test_filenames.shape))
+print((x_train_filenames.shape, y_train_filenames.shape),
+        (x_val_filenames.shape, y_val_filenames.shape),
+        (x_test_filenames.shape, y_test_filenames.shape))
 
 # initialize the parameter of the network
 net = {
@@ -215,12 +216,25 @@ try:
     model.load_weights(checkpoint_path)
 except:
     print('checkpoint not loaded')
-cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+cp_callback1 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'_best_geo',
                                                  save_weights_only=True,
                                                  monitor='val_geo_dice',
                                                  mode='max',
                                                  save_best_only=True,
                                                  verbose=1)
+
+cp_callback2 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'_best_dice',
+                                                 save_weights_only=True,
+                                                 monitor='val_dice',
+                                                 mode='max',
+                                                 save_best_only=True,
+                                                 verbose=1)
+
+cp_callback3 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1)
+
+
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(
     log_dir=log_dir, histogram_freq=1, profile_batch='500,520')
@@ -228,7 +242,7 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 
 # model training
 history = model.fit(train_ds.batch(params.batch_size).prefetch(50),
-                    callbacks=[tensorboard_callback, cp_callback],
+                    callbacks=[tensorboard_callback, cp_callback1,cp_callback2,cp_callback3],
                     validation_data=val_ds.batch(
                         params.batch_size).prefetch(50),
                     epochs=params.epochs)
