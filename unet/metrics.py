@@ -42,6 +42,30 @@ class DiceX(tf.keras.metrics.Metric):
     def result(self):
         return self.intersection / self.union
 
+class DiceM(tf.keras.metrics.Metric):
+    """ compute the mean of per-class dice
+
+    """
+
+    def __init__(self, num=1, name='mean_dice', **kwargs):
+        super(DiceM, self).__init__(name=name, **kwargs)
+        self.intersection = self.add_weight(
+            name='intersection', shape=(num,), initializer='ones')
+        self.union = self.add_weight(
+            name='union', shape=(num,), initializer='ones')
+        self.num = num
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        self.intersection.assign_add(
+            2*tf.reduce_sum(y_true*y_pred, axis=(0, 1, 2)))
+        self.union.assign_add(tf.reduce_sum(y_true+y_pred, axis=(0, 1, 2)))
+
+    def result(self):
+        return tf.reduce_sum(self.intersection / self.union)/ self.num
+
+    def reset_states(self):
+        self.intersection.assign([1 for i in range(self.num)])
+        self.union.assign([1 for i in range(self.num)])
 
 class DiceG(tf.keras.metrics.Metric):
     """ compute the geometric mean of per-class dice

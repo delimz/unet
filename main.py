@@ -31,7 +31,7 @@ import numpy as np
 from data.preprocessing import get_dataset, augment
 from unet.model import unet
 from unet.loss import superloss
-from unet.metrics import Dice, DiceX, DiceG
+from unet.metrics import Dice, DiceX, DiceG, DiceM
 from unet.utils import crop_size
 
 from unet.preconf import conf
@@ -210,12 +210,20 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 
 num_mask = len(params.terms)
 model.compile('adam', superloss, metrics=[
-              Dice(), *[DiceX(i) for i in range(num_mask)], DiceG(num_mask)])
+              Dice(), *[DiceX(i) for i in range(num_mask)], DiceG(num_mask), DiceM(num_mask)])
 
 try:
     model.load_weights(checkpoint_path)
 except:
     print('checkpoint not loaded')
+cp_callback0 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'_best_mean',
+                                                 save_weights_only=True,
+                                                 monitor='val_mean_dice',
+                                                 mode='max',
+                                                 save_best_only=True,
+                                                 verbose=1)
+
+
 cp_callback1 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'_best_geo',
                                                  save_weights_only=True,
                                                  monitor='val_geo_dice',
@@ -242,7 +250,7 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 
 # model training
 history = model.fit(train_ds.batch(params.batch_size).prefetch(50),
-                    callbacks=[tensorboard_callback, cp_callback1,cp_callback2,cp_callback3],
+                    callbacks=[tensorboard_callback, cp_callback1,cp_callback2,cp_callback3,cp_callback0],
                     validation_data=val_ds.batch(
                         params.batch_size).prefetch(50),
                     epochs=params.epochs)
